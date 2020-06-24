@@ -7,15 +7,32 @@ public class orderCreateBatchTest {
         orderCreateBatchTest();
     }
     
-    @isTest(SeeAllData=true)
+    @isTest(SeeAllData=false)
     static void orderCreateBatchTest(){
         Test.startTest();
         Test.SetMock(HttpCallOutMock.class, new orderCreateBatchMockTest());
-        orderCreateBatch eb= new orderCreateBatch(null);
+        orderCreateBatch eb= new orderCreateBatch();
         database.executeBatch(eb,8);
         Test.stopTest();
     }
     
+    @isTest(SeeAllData=false)
+    static void testForOrderCreateController(){
+        Test.startTest();
+        
+        list<DIC_TemporaryOrderHeader__c> hlist=[select id,DIC_Requested_Delivery_Date__c,DIC_Sold_To__c,DIC_Ship_To__c,DIC_Price_Book__c,DIC_Data_Source__c,DIC_Status__c from DIC_TemporaryOrderHeader__c];
+		
+        ApexPages.StandardSetController stdSetController = new ApexPages.StandardSetController(hlist);
+  		stdSetController.setSelected(hlist);
+        
+        ordercreateController ord= new ordercreateController(stdSetController);
+        ord.create();
+        Test.stopTest();
+    }
+    
+    
+    
+	@testSetup    
     static void createPrepareData(){
         
         //create account
@@ -105,7 +122,7 @@ public class orderCreateBatchTest {
         RecordType re1 = [Select Id,DeveloperName  From RecordType where sobjecttype = 'overcast__Scenario__c' and DeveloperName ='realtime'];
 
         overcast__Scenario__c s1= new overcast__Scenario__c();
-        s1.Name='DIC_sapSalesOrderCreate';
+        s1.Name='DIC_MultipleOrderCreate';
         s1.overcast__Connection_String__c=con.id;
         s1.RecordTypeId=re1.id;
         s1.overcast__Active__c=true;
