@@ -1,5 +1,6 @@
 <apex:page standardController="DIC_TemporaryOrderHeader__c" recordSetVar="OrderHeaders" tabStyle="Opportunity" extensions="ordercreateController">
-    
+
+    <apex:slds />
     <apex:outputPanel rendered="{!IF(osCount=0,true,false)}">
         <apex:pageBlock title="you should select at least one record" mode="read"/>
     </apex:outputPanel>
@@ -7,14 +8,26 @@
         <apex:pageBlock title="you should select less than 100 record" mode="read"/>
     </apex:outputPanel>
     <apex:outputPanel rendered="{!IF(Or(osCount=0,osCount>100),false,true)}">
-        <apex:form >
+        <apex:form id="ifrom">
             <apex:pageBlock title="Check the records you have chosen,then click the create button to send data to SAP" mode="read">
                 <apex:pageMessages />
                 <apex:pageBlockButtons location="top">
-                    <apex:commandButton value="create" action="{!create}"/>
+                    <apex:commandButton value="create" action="{!create}" reRender="ifrom" status="sts" />
                     <apex:commandButton value="return" action="{!listView}" />
                 </apex:pageBlockButtons>
-                <apex:variable var="sr" value="{!0}"/>
+                <apex:actionstatus id="sts">
+                    <apex:facet name="start">
+                        <div class="slds-spinner_container">
+                            <div id="mySpinner" role="status" class="slds-spinner slds-spinner_medium">
+                                <span class="slds-assistive-text">Loading</span>
+                                <div class="slds-spinner__dot-a"></div>
+                                <div class="slds-spinner__dot-b"></div>
+                            </div>
+                        </div>
+                    </apex:facet>
+                </apex:actionstatus>
+                                
+                <apex:variable id="countSr" var="sr" value="{!0}"/>
                 <apex:pageBlockTable id="Tvalue" value="{!selected}" var="order">
                     <apex:column headerValue="Record Id">
                         <a href="/{!order.id}">{!order.id}</a>
@@ -27,17 +40,18 @@
                         <apex:outputField value="{!order.DIC_Status__c}"/>
                     </apex:column>
                     
-                     <apex:column headerValue="Message">
-                         <apex:outputPanel rendered="{!IF(msglist.size<>0,true,false)}">
-                                <apex:outputText value="{!msglist[sr]}"/>
-                                 <apex:variable var="sr" value="{!sr + 1}"/>
-                         </apex:outputPanel>
+                    <apex:column id="Message" headerValue="Message">
+                        <apex:outputPanel rendered="{!IF(msglist.size<>0,true,false)}">
+                            <apex:outputText value="{!msglist[sr]}"/>
+                            <apex:variable var="sr" value="{!sr + 1}"/>
+                        </apex:outputPanel>
                     </apex:column>
                     
-
+                    
                 </apex:pageBlockTable>      
                 
             </apex:pageBlock>
         </apex:form>
     </apex:outputPanel>
+
 </apex:page>
