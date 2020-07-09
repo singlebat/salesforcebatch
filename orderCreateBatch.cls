@@ -1,7 +1,12 @@
-global class orderCreateBatch implements Database.Batchable<sObject>,Database.AllowsCallouts  {
+global class orderCreateBatch implements Database.Batchable<sObject>,Database.AllowsCallouts,Database.Stateful {
 
-public String query;
-public orderCreateBatch() {
+public  String query;
+public  List<String> resultList;
+public  List<ID> newosIds= new list<ID>();
+global  orderCreateBatch(list<ID> osIds) {
+
+    newosIds=osIds;
+    resultList=new List<String>(); 
     //dynamically make up query parse so you can pass it to start func, 
     //this is because start func can not get the dynamic parameter
     //start func can get the static parameter
@@ -32,12 +37,23 @@ public orderCreateBatch() {
     query += 'DIC_Price_Book__r.DIC_Unloading_Point__c, ';	
     query += 'name ';                     					
     query += 'FROM  DIC_TemporaryOrderHeader__c ';
-    
-    //it stand for automatic creation
-    //1. status=Before Sales Order
-    query += 'WHERE DIC_Status__c =\'1\' ';
-    //2. PriceBook.Manual_Flag=false
-    query += 'AND DIC_Price_Book__r.DIC_Manual_Flag__c=false ';         
+    if(newosIds!=null && newosIds.size()!=0){
+        String condition='';
+        for(ID headerId:newosIds){
+            condition=condition+'\''+headerId+'\',';
+        }
+        condition = condition.removeEnd(',');
+        system.debug('45'+condition);
+
+        //it stand for manual creation
+        query += 'WHERE id in '+'('+condition+')';  
+    }else{
+        //it stand for automatic creation
+        //1. status=Before Sales Order
+        query += 'WHERE DIC_Status__c =\'1\' ';
+        //2. PriceBook.Manual_Flag=false
+        query += 'AND DIC_Price_Book__r.DIC_Manual_Flag__c=false ';     
+    }
 }
 
 global Database.QueryLocator start(Database.BatchableContext bc) {
@@ -158,7 +174,7 @@ global void execute(Database.BatchableContext bc, List<DIC_TemporaryOrderHeader_
 }
 
 
-public   static void  putinto(DIC_MultipleOrderCreate.IT_PARTNERADDRESSES paaddress,DIC_TemporaryOrderHeader__c headertemp,
+public    void  putinto(DIC_MultipleOrderCreate.IT_PARTNERADDRESSES paaddress,DIC_TemporaryOrderHeader__c headertemp,
                 String code){
 
                     paaddress.ADDR_NO= code;
@@ -207,7 +223,7 @@ public   static void  putinto(DIC_MultipleOrderCreate.IT_PARTNERADDRESSES paaddr
 
 
 
-public   static void  doCallout(list<Map<DIC_TemporaryOrderItem__c,DIC_TemporaryOrderHeader__c>> rlist,list<PricebookEntry> newEntrylist){
+public    void  doCallout(list<Map<DIC_TemporaryOrderItem__c,DIC_TemporaryOrderHeader__c>> rlist,list<PricebookEntry> newEntrylist){
     DIC_MultipleOrderCreate request = new DIC_MultipleOrderCreate();
     
     for(Map<DIC_TemporaryOrderItem__c,DIC_TemporaryOrderHeader__c> setMap:rlist){
@@ -394,6 +410,15 @@ public   static void  doCallout(list<Map<DIC_TemporaryOrderItem__c,DIC_Temporary
                     request.testResponse += '"IT_ORDER_HEADER_IN":[{"REFOBJTYPE":"","REFOBJKEY":"a0h0l0000029NjaAAE","REFDOCTYPE":"","DOC_TYPE":"YJ20"}]}}';
             }
             DIC_MultipleOrderCreate response = request.run(logger,null);
+            for(DIC_MultipleOrderCreate.ET_RETURN en:response.ET_RETURN){
+                if(en.SALESDOCUMENT!=null){
+                    resultList.add('success');
+                }else{
+                    resultList.add('fail');
+                }
+            }
+			system.debug(response.ET_RETURN);
+    		system.debug(resultList);
             system.debug(response.testResponse);
             // Log levels are ERROR, WARN, INFO, DEBUG, VERBOSE
             logger.addLog('INFO', 'Custom log');
@@ -402,7 +427,7 @@ public   static void  doCallout(list<Map<DIC_TemporaryOrderItem__c,DIC_Temporary
     
 }
 
-public   static void  setIT_ORDER_TEXT(String OderText,DIC_MultipleOrderCreate request,String TID,
+public   void  setIT_ORDER_TEXT(String OderText,DIC_MultipleOrderCreate request,String TID,
         DIC_TemporaryOrderHeader__c headertemp,String ITMSNUMBER){
             //4.set the IT_ORDER_TEXT
             if(OderText!=null&&OderText!=''){
@@ -418,6 +443,24 @@ public   static void  setIT_ORDER_TEXT(String OderText,DIC_MultipleOrderCreate r
 
 global void finish(Database.BatchableContext bc) {
     //Do Nothing
+    //
+    system.debug(resultList);
+    system.debug(newosIds);
+
+    if(resultList!=null && newosIds!=null){
+		List<DIC_TemporaryOrderHeader__c>  hlist=[select id,name,DIC_Status__c from DIC_TemporaryOrderHeader__c where id in :newosIds];
+        Integer cout=0;
+        for(DIC_TemporaryOrderHeader__c header:hlist){
+            if(resultList[cout]=='success'){
+                header.DIC_Status__c='3';
+            }else{
+                header.DIC_Status__c='2';
+            } 
+            cout=cout+1;
+        }
+        update hlist;
+    }
+
 }
 
 }
