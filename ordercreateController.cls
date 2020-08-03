@@ -8,14 +8,17 @@ public class ordercreateController {
 
 
     public  PageReference listView() {
-           Schema.DescribeSObjectResult destination = DIC_TemporaryOrderHeader__c.sObjectType.getDescribe();
+           //Schema.DescribeSObjectResult destination = DIC_TemporaryOrderHeader__c.sObjectType.getDescribe();
            //here is the explanation
            //every sobject has a code to stand for itself,like account is 001
            //so when you get the code for Sobject,you can give the code to PageReference
-           PageReference pageRef = new PageReference('/' + destination.getKeyPrefix() );
+           //PageReference pageRef = new PageReference('/' + destination.getKeyPrefix() );
+           PageReference pageRef = new PageReference('/lightning/o/DIC_TemporaryOrderHeader__c/list?filterName=all' );
            pageRef.setRedirect(true);
            return pageRef;
     }
+
+
 	public  ordercreateController(ApexPages.StandardSetController controller) {        
         //you can get the selected data from previous page
 		 os=controller.getSelected();  
@@ -32,7 +35,7 @@ public class ordercreateController {
             osIds.add(he.Id);
             system.debug(he);
         }
-		os=[select id,name,DIC_Sold_To__r.name,DIC_Status__c from DIC_TemporaryOrderHeader__c where id in :osIds];         
+		os=[select id,name,DIC_Sold_To__r.name,DIC_Status__c,DIC_Error_Message__c from DIC_TemporaryOrderHeader__c where id in :osIds];         
          system.debug(os);
     }
     
@@ -45,7 +48,7 @@ public class ordercreateController {
             ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.INFO, 'We are in '+job.Status.toLowerCase()+' status: '+Math.floor(100.0*job.JobItemsProcessed/job.TotalJobItems)+'%...')); 
         } else {
             //when batch is completed,we update the statue for refreshing page
-            os=[select id,name,DIC_Sold_To__r.name,DIC_Status__c from DIC_TemporaryOrderHeader__c where id in :osIds];
+            os=[select id,name,DIC_Sold_To__r.name,DIC_Status__c,DIC_Error_Message__c from DIC_TemporaryOrderHeader__c where id in :osIds];
             ApexPages.addMessage(new ApexPages.Message(ApexPages.Severity.CONFIRM, 'The job is now '+job.Status.toLowerCase()+'.'));
             keepPolling = false;
         }
@@ -55,9 +58,13 @@ public class ordercreateController {
     
     public   void   create(){
        //prepareData(osIds);
-        orderCreateBatch oBatch=new orderCreateBatch(osIds);
-        jobId=Database.executeBatch(oBatch);     
-
+        //orderCreateBatch oBatch=new orderCreateBatch(osIds);
+        //jobId=Database.executeBatch(oBatch);   
+        
+        
+        Muti_OrderCreateBatch mi=new Muti_OrderCreateBatch(osIds);
+        mi.executeItemCnt=100;
+        jobId=DataBase.executeBatch(mi,mi.executeItemCnt);
         keepPolling = true;
         actionPollAction();
 
