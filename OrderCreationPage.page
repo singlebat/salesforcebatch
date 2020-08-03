@@ -1,53 +1,107 @@
-<apex:page standardController="DIC_TemporaryOrderHeader__c" recordSetVar="OrderHeaders" tabStyle="Opportunity" extensions="ordercreateController">
-
-    <apex:slds />
-    <apex:outputPanel rendered="{!IF(osCount=0,true,false)}">
-        <apex:pageBlock title="you should select at least one record" mode="read"/>
-    </apex:outputPanel>
-    <apex:outputPanel rendered="{!IF(Or(osCount>0),true,false)}">
-        <apex:form id="ifrom">
- 			<!--this is actionPoller which call the actionPollAction every 5s.If the keepPolling is changed, it will refresh the ifrom area-->
-            <apex:actionPoller rendered="{!keepPolling}" action="{!actionPollAction}" interval="5" reRender="ifrom" />
-            
-            
-            <apex:pageBlock title="Check the records you have chosen,then click the create button to send data to SAP" mode="read">
-                <!--this is pageMessages-->
-                <apex:pageMessages />
-                
-                <!--this is button-->
-                <apex:pageBlockButtons location="top">
-                    <apex:commandButton value="create" action="{!create}" reRender="ifrom" status="sts" />
+<apex:page standardController="DIC_TemporaryOrderHeader__c" lightningStylesheets="true" recordSetVar="OrderHeaders" tabStyle="Opportunity" extensions="ordercreateController">
+    <html xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <apex:slds />
+        <apex:outputPanel rendered="{!IF(osCount=0,true,false)}">
+            <apex:form id="ofrom">
+                <apex:pageBlock title="you should select at least one record" mode="read">
                     <apex:commandButton value="return" action="{!listView}" />
-                </apex:pageBlockButtons>
+                </apex:pageBlock>
+            </apex:form>
+        </apex:outputPanel>
+        
+        <apex:outputPanel rendered="{!IF(Or(osCount>0),true,false)}">
+            <apex:form id="ifrom">
+                <!--this is actionPoller which call the actionPollAction every 5s.If the keepPolling is changed, it will refresh the ifrom area-->
+                <apex:actionPoller rendered="{!keepPolling}" action="{!actionPollAction}" interval="5" reRender="ifrom" />
                 
-                <!--this is a spinner apearing when the apex is executing-->
-                <apex:actionstatus id="sts">
-                    <apex:facet name="start">
-                        <div class="slds-spinner_container">
-                            <div id="mySpinner" role="status" class="slds-spinner slds-spinner_medium">
-                                <span class="slds-assistive-text">Loading</span>
-                                <div class="slds-spinner__dot-a"></div>
-                                <div class="slds-spinner__dot-b"></div>
+                
+                <apex:pageBlock title="Check the records you have chosen,then click the create button to send data to SAP" mode="read">
+                    <!--this is pageMessages-->
+                    <apex:pageMessages />
+                    
+                    <!--this is button-->
+                    <apex:pageBlockButtons location="top">
+                        <apex:commandButton value="create" onclick="docheck();return false;" status="sts"/>
+                        <apex:commandButton value="return" action="{!listView}" />
+                    </apex:pageBlockButtons>
+                    
+                    <!--this is a spinner apearing when the apex is executing-->
+                    <apex:actionstatus id="sts">
+                        <apex:facet name="start">
+                            <div class="slds-spinner_container">
+                                <div id="mySpinner" role="status" class="slds-spinner slds-spinner_medium">
+                                    <span class="slds-assistive-text">Loading</span>
+                                    <div class="slds-spinner__dot-a"></div>
+                                    <div class="slds-spinner__dot-b"></div>
+                                </div>
                             </div>
-                        </div>
-                    </apex:facet>
-                </apex:actionstatus>
-
-                <apex:pageBlockTable id="Tvalue" value="{!os}" var="order">
-                    <apex:column headerValue="Record Id">
-                        <a href="/{!order.id}">{!order.id}</a>
-                    </apex:column>
-                    <apex:column value="{!order.name}"/>
-                    <apex:column headerValue="Sold To">
-                        <apex:outputField value="{!order.DIC_Sold_To__r.name}" />
-                    </apex:column>
-                    <apex:column headerValue="Status">
-                        <apex:outputField value="{!order.DIC_Status__c}"/>
-                    </apex:column>
-                </apex:pageBlockTable>      
+                        </apex:facet>
+                    </apex:actionstatus>
+                    
+                    <apex:pageBlockTable id="Tvalue" value="{!os}" var="order">
+                        <apex:column headerValue="Record Id">
+                            <a href="/{!order.id}">{!order.id}</a>
+                        </apex:column>
+                        <apex:column value="{!order.name}"/>
+                        <apex:column headerValue="Sold To">
+                            <apex:outputField value="{!order.DIC_Sold_To__r.name}" />
+                        </apex:column>
+                        <apex:column headerValue="Status">
+                            <apex:outputField value="{!order.DIC_Status__c}"/>
+                        </apex:column>
+                        <apex:column headerValue="Error Message">
+                            <apex:outputField value="{!order.DIC_Error_Message__c}"/>
+                        </apex:column>
+                    </apex:pageBlockTable>      
+                    
+                    
+                    
+                    <!-- this is a popup page-->                    
+                    <div id="popup" class="slds-hide">
+                        <section id="secID" role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true" aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open">
+                            <div class="slds-modal__container ">
+                                <header class="slds-modal__header">
+                                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close">
+                                        <svg class="slds-button__icon slds-button__icon_large" aria-hidden="true">
+                                            <use xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#close"></use>
+                                        </svg>
+                                        <span class="slds-assistive-text">Close</span>
+                                    </button>
+                                    <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Alert</h2>
+                                </header>
+                                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                                    <p>既にSAP登録済みの仮受注データがあります。伝票登録しますか？</p>
+                                </div>
+                                <footer class="slds-modal__footer">
+                                    <apex:commandButton styleClass="slds-button slds-button--neutral" onclick="docancel();return false;" value="Cancel"></apex:commandButton>
+                                    <apex:commandButton styleClass="slds-button slds-button--brand" action="{!create}" value="Ok"></apex:commandButton>
+                                </footer>
+                            </div>
+                        </section>
+                        <div id="backColorID" class="slds-backdrop slds-backdrop_open"></div>
+                    </div>
+                    <!-- this is a popup page-->
+                    
+                    
+                    
+                </apex:pageBlock>
                 
-            </apex:pageBlock>
-        </apex:form>
-    </apex:outputPanel>
-
+                
+                
+            </apex:form>
+            
+        </apex:outputPanel>
+        <script type="text/javascript">
+        function docheck(){
+            var tabValue1 = document.getElementById('popup');
+            //tabValue1.classList.add( "" ) ;
+            tabValue1.classList.remove( "slds-hide" ) ;
+            //crea();
+        }
+        function docancel(){
+         	var tabValue1 = document.getElementById('popup');
+            tabValue1.classList.add( "slds-hide" ) ;
+        }
+        </script>
+    </html>
 </apex:page>
