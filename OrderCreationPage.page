@@ -21,22 +21,11 @@
                     
                     <!--this is button-->
                     <apex:pageBlockButtons location="top">
-                        <apex:commandButton value="create" onclick="docheck();return false;" status="sts"/>
+                        <apex:commandButton value="create" onclick="docheck();return false;"/>
                         <apex:commandButton value="return" action="{!listView}" />
                     </apex:pageBlockButtons>
                     
-                    <!--this is a spinner apearing when the apex is executing-->
-                    <apex:actionstatus id="sts">
-                        <apex:facet name="start">
-                            <div class="slds-spinner_container">
-                                <div id="mySpinner" role="status" class="slds-spinner slds-spinner_medium">
-                                    <span class="slds-assistive-text">Loading</span>
-                                    <div class="slds-spinner__dot-a"></div>
-                                    <div class="slds-spinner__dot-b"></div>
-                                </div>
-                            </div>
-                        </apex:facet>
-                    </apex:actionstatus>
+ 
                     
                     <apex:pageBlockTable id="Tvalue" value="{!os}" var="order">
                         <apex:column headerValue="Record Id">
@@ -74,7 +63,7 @@
                                 </div>
                                 <footer class="slds-modal__footer">
                                     <apex:commandButton styleClass="slds-button slds-button--neutral" onclick="docancel();return false;" value="Cancel"></apex:commandButton>
-                                    <apex:commandButton styleClass="slds-button slds-button--brand" action="{!create}" value="Ok"></apex:commandButton>
+                                    <apex:commandButton styleClass="slds-button slds-button--brand" onclick="callcreate();return false;" value="Ok"></apex:commandButton>
                                 </footer>
                             </div>
                         </section>
@@ -86,17 +75,46 @@
                     
                 </apex:pageBlock>
                 
-                
-                
+                <apex:actionFunction name="callcreate" action="{!create}" id="jsCallApex" status="loadingStatusForSpinner" rerender="ifrom"/>
+                <!--this is a spinner apearing when the apex is executing-->
+                <apex:actionstatus id="loadingStatusForSpinner">
+                    <apex:facet name="start">
+                        <div class="slds-spinner_container">
+                            <div id="mySpinner" role="status" class="slds-spinner slds-spinner_medium">
+                                <span class="slds-assistive-text">Loading</span>
+                                <div class="slds-spinner__dot-a"></div>
+                                <div class="slds-spinner__dot-b"></div>
+                            </div>
+                        </div>
+                    </apex:facet>
+                </apex:actionstatus>
             </apex:form>
             
+
         </apex:outputPanel>
         <script type="text/javascript">
         function docheck(){
-            var tabValue1 = document.getElementById('popup');
-            //tabValue1.classList.add( "" ) ;
-            tabValue1.classList.remove( "slds-hide" ) ;
-            //crea();
+			var flg=false;
+            //loop,and check if there any record's status is order entry
+            <apex:repeat value="{!os}" var="ele">
+                if("{!ele.DIC_Status__c}"==="3"){
+                    flg=true;
+                }
+            </apex:repeat>
+            //if there exist order entry,show popup page
+            if(flg==true){
+                if(window.confirm('既にSAP登録済みの仮受注データがあります。伝票登録しますか？')){
+                	callcreate();
+                }
+
+                //var tabValue1 = document.getElementById('popup');
+                //tabValue1.classList.add( "" ) ;
+                //tabValue1.classList.remove( "slds-hide" ) ;   
+            }else{
+                //else execute the create func of apex
+            	callcreate();
+            }
+
         }
         function docancel(){
          	var tabValue1 = document.getElementById('popup');
